@@ -1,0 +1,24 @@
+version: "3.1"
+nlu:
+  - intent: greet
+    examples: |
+      - hey
+      - hello
+      - hi
+      - good morning
+      - good evening
+  - intent: ask_help
+    examples: |
+      - I need help with my modem
+      - My internet is not working
+      - How can I reset my router?
+      - What’s wrong with my broadband?
+  - intent: raise_ticket
+    examples: |
+      - I want to open a support ticket
+      - This issue needs to be reported
+  - intent: goodbye
+    examples: |
+      - bye
+      - goodbye
+      - see you later
