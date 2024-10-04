@@ -2,19 +2,30 @@ from flask import Flask, request, jsonify
 import sqlite3
 from rasa.core.agent import Agent
 import asyncio
+from fuzzywuzzy import fuzz
 
 app = Flask(__name__)
-
 agent = Agent.load("./models/20241004-134844-adaptive-radian.tar.gz")
 
-
-def get_solution(issue):
+def get_best_matching_solution(issue):
     conn = sqlite3.connect('knowledgebase.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT solution FROM solutions WHERE issue LIKE ?", ('%' + issue + '%',))
-    result = cursor.fetchone()
+    cursor.execute("SELECT issue, solution FROM solutions")
+    all_solutions = cursor.fetchall()
     conn.close()
-    return result[0] if result else None
+
+    best_match = None
+    highest_score = 0
+
+    for db_issue, solution in all_solutions:
+        score = fuzz.token_set_ratio(issue.lower(), db_issue.lower())
+        if score > highest_score:
+            highest_score = score
+            best_match = (db_issue, solution)
+
+    if best_match and highest_score > 60:  # Threshold for considering it a match
+        return best_match
+    return None
 
 def raise_ticket(customer_issue):
     conn = sqlite3.connect('support_tickets.db')
@@ -25,43 +36,38 @@ def raise_ticket(customer_issue):
                    (customer_issue, 'unresolved'))
     conn.commit()
     conn.close()
-    ticket_data = {
-        'customer_issue': customer_issue,
-        'status': 'unresolved'
-    }
-    print("Ticket raised with data:", ticket_data) 
-    return "Ticket raised successfully. Our support team will get back to you."
+    print(f"Ticket raised for issue: {customer_issue}")
+    return "I've created a support ticket for your issue. Our team will get back to you soon."
 
-# Endpoint for chat handling
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_input = request.json.get('message')
+    user_input = request.json.get('message', '').strip().lower()
     if not user_input:
-        return jsonify({'response': 'Please provide an issue for troubleshooting.'}), 400
+        return jsonify({'response': "I didn't catch that. Could you please repeat your question or issue?"}), 400
 
-    # Run the Rasa agent asynchronously to handle text
+    # First, check if the input directly matches a known issue
+    best_match = get_best_matching_solution(user_input)
+    if best_match:
+        matched_issue, solution = best_match
+        return jsonify({'response': f"I understand you're having an issue with {matched_issue}. Here's what you can try: {solution}"}), 200
+
+    # If no direct match, use Rasa for intent classification
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    parsed_data = loop.run_until_complete(agent.handle_text(user_input.lower()))
+    parsed_data = loop.run_until_complete(agent.handle_text(user_input))
 
     if parsed_data:
-        rasa_response = parsed_data[0].get('text', 'I am not sure how to help with that.')
-        # Check if the intent is troubleshooting-related and if a solution exists
-        solution = get_solution(user_input.lower())
-        
-        if solution:
-            return jsonify({'response': solution}), 200
+        intent = parsed_data[0].get('intent', {}).get('name', '').lower()
+        rasa_response = parsed_data[0].get('text', '')
+
+        if any(keyword in intent for keyword in ['troubleshoot', 'problem', 'issue']):
+            ticket_response = raise_ticket(user_input)
+            return jsonify({'response': f"I'm sorry, I don't have a specific solution for that issue. {ticket_response}"}), 200
         else:
-            # If Rasa responds with something generic (like a greeting or small talk), we return it
-            if 'troubleshoot' in parsed_data[0].get('intent', {}).get('name', '').lower():
-                # Raise a ticket for unresolved troubleshooting issues
-                ticket_response = raise_ticket(user_input)
-                return jsonify({'response': f'No solution found. {ticket_response}'}), 200
-            else:
-                # If it's just small talk, return the bot's response
-                return jsonify({'response': rasa_response}), 200
+            # For non-troubleshooting intents, return Rasa's response
+            return jsonify({'response': rasa_response}), 200
     else:
-        return jsonify({'response': 'Sorry, I didn’t understand that. Can you please repeat?'})
+        return jsonify({'response': "I'm having trouble understanding. Could you rephrase your question or provide more details about your issue?"}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
