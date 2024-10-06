@@ -1,24 +1,116 @@
 version: "3.1"
+
 nlu:
-  - intent: greet
-    examples: |
-      - hey
-      - hello
-      - hi
-      - good morning
-      - good evening
-  - intent: ask_help
-    examples: |
-      - I need help with my modem
-      - My internet is not working
-      - How can I reset my router?
-      - What’s wrong with my broadband?
-  - intent: raise_ticket
-    examples: |
-      - I want to open a support ticket
-      - This issue needs to be reported
-  - intent: goodbye
-    examples: |
-      - bye
-      - goodbye
-      - see you later
+- intent: greet
+  examples: |
+    - hi
+    - hello
+    - hey
+    - hello there
+    - hey there
+    - good morning
+    - hi chat
+    - hey chat
+    - hey dude
+    - hi dude
+    - whats up
+
+- intent: goodbye
+  examples: |
+    - cu
+    - goody by
+    - cee you later
+    - bye
+    - good bye
+    - goodbye
+    - bye bye
+    - see ya
+    - see you arount
+    - have a nice day
+
+- intent: afirm
+  examples: |
+    - yes
+    - yep
+    - y
+    - Y
+    - ye
+    - indeed
+    - of course
+    - yep that worked
+    - yes that worked
+    - correct
+
+- intent: deny
+  examples: |
+    - no
+    - nop
+    - n
+    - N
+    - nope
+    - never
+    - of course
+    - that didn't worked
+    - i don't think so
+    - i dont think so
+    - dont think so
+    - not really
+
+- intent: thanks
+  examples: |
+    - thank you
+    - thanks
+    - finally ty
+    - ty
+
+- intent: ask_for_solution
+  examples: |
+    - my modem is overheating any solutions?
+    - my modem temperature is too high
+    - i am unable to connect to the modem
+    - spotty internet
+    - slow internet connection
+    - sluggish internet connection
+    - slow internet speeds
+    - slow internet speed
+    - bad internet speed
+    - low internet speeds
+    - bad internet speeds
+    - internet is slow
+    - ping is high
+    - latency is high
+    - web page is slow to load
+    - no internet
+    - no internet signal
+    - internet is down
+    - my home has no internet
+    - no internet connection
+    - web page is not loading
+    - network outage
+    - no wifi
+    - no wifi signal
+    - no wifi connection
+    - wifi is down
+    - wi-fi is down
+    - wifi network is down
+    - wireless network is down
+    - not able to connect to the wifi
+
+- intent: need_new_router_fixing_internet
+  examples: |
+    - I need a new router
+    - I need a new wireless router
+    - my router is dead
+    - I need a stronger router
+    - I cannot connect more devices
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot?
+    - are you human?
+    - am i talking to a bot?
+    - am i talking to a human?
+    - bot?
+    - human?
+    - are you ai?
+    - ai?
