@@ -96,13 +96,6 @@ nlu:
     - wireless network is down
     - not able to connect to the wifi
 
-- intent: need_new_router_fixing_internet
-  examples: |
-    - I need a new router
-    - I need a new wireless router
-    - my router is dead
-    - I need a stronger router
-    - I cannot connect more devices
 
 - intent: bot_challenge
   examples: |
