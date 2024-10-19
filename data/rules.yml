@@ -11,3 +11,14 @@ rules:
   steps:
   - intent: bot_challenge
   - action: utter_iamabot
+
+- rule: Extract issue and symptom
+  steps:
+  - intent: ask_solution
+  - action: action_extract_issue_symptom
+  - action: utter_confirm_understanding
+
+- rule: Human handoff
+  steps:
+  - intent: human_handoff
+  - action: utter_human_handoff

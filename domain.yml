@@ -5,24 +5,67 @@ intents:
   - goodbye
   - affirm
   - deny
-  - ask_for_solution
-  - bot_challenge
-  - thanks
+  - ask_solution
+  - thank
+  - human_handoff
+
+entities:
+  - issue
+  - symptom
+
+slots:
+  issue:
+    type: text
+    mappings:
+    - type: from_entity
+      entity: issue
+  symptom:
+    type: text
+    mappings:
+    - type: from_entity
+      entity: symptom
+  department:
+    type: text
+    mappings:
+    - type: custom
+  ticket_info:
+    type: text
+    mappings:
+    - type: custom
 
 responses:
   utter_greet:
-    - text: "Hello! How can I help you today?"
+  - text: "Hello! How can I assist you today?"
+
   utter_goodbye:
-    - text: "Bye"
+  - text: "Goodbye! Have a great day!"
+
+  utter_ask_more_info:
+  - text: "Can you tell me more about the issue you're experiencing?"
+
+  utter_confirm_understanding:
+  - text: "I understand you're having an issue with {issue}. The symptom you've described is {symptom}. Is that correct?"
+
+  utter_confirm_department:
+  - text: "I understand this issue might be related to the {department} department. Would you like me to create a ticket for this department?"
+
+  utter_ticket_created:
+  - text: "I've created a ticket for the {department} department with the following information: {ticket_info}"
+
+  utter_human_handoff:
+  - text: "I'm connecting you with a human agent. Please hold on."
+  
   utter_iamabot:
-    - text: "I am a bot :)"
-  utter_thanks:
-    - text: "You are Welcome, Glad I could help :)"
+  - text: "Yes, I'm a bot"
+  
+  utter_thank:
+  - text: "You're welcome! Is there anything else I can help you with?"
 
 actions:
-  - action_get_best_matching_solution
-
+  - action_extract_issue_symptom
+  - action_provide_solution
+  - action_create_ticket
 
 session_config:
-  session_expiration_time: 300
+  session_expiration_time: 60
   carry_over_slots_to_new_session: true

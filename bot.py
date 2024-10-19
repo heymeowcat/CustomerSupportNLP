@@ -5,7 +5,7 @@ import asyncio
 
 
 app = Flask(__name__)
-agent = Agent.load("./models/20241006-180659-adagio-perch.tar.gz",  action_endpoint=EndpointConfig(url="http://localhost:5055/webhook"))
+agent = Agent.load("./models/20241019-160027-symmetric-result.tar",  action_endpoint=EndpointConfig(url="http://localhost:5055/webhook"))
 
 @app.route('/chat', methods=['POST'])
 def chat():

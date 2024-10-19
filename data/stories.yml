@@ -2,18 +2,49 @@ version: "3.1"
 
 stories:
 
-- story: greet
+- story: happy path
   steps:
   - intent: greet
   - action: utter_greet
+  - intent: ask_solution
+  - action: action_extract_issue_symptom
+  - action: utter_confirm_understanding
+  - intent: affirm
+  - action: action_provide_solution
+  - intent: thank
+  - action: utter_thank
+  - intent: goodbye
+  - action: utter_goodbye
 
-- story: express thanks
+- story: sad path 1
   steps:
-  - intent: thanks
-  - action: utter_thanks
+  - intent: greet
+  - action: utter_greet
+  - intent: ask_solution
+  - action: action_extract_issue_symptom
+  - action: utter_confirm_understanding
+  - intent: affirm
+  - action: action_provide_solution
+  - intent: deny
+  - action: utter_ask_more_info
+  - intent: ask_solution
+  - action: action_extract_issue_symptom
+  - action: utter_confirm_understanding
+  - intent: affirm
+  - action: action_provide_solution
 
-
-- story: provide solution from database
+- story: sad path 2
   steps:
-  - intent: ask_for_solution
-  - action: action_get_best_matching_solution
+  - intent: greet
+  - action: utter_greet
+  - intent: ask_solution
+  - action: action_extract_issue_symptom
+  - action: utter_confirm_understanding
+  - intent: affirm
+  - action: action_provide_solution
+  - intent: deny
+  - action: action_create_ticket
+  - intent: affirm
+  - action: utter_ticket_created
+  - intent: goodbye
+  - action: utter_goodbye

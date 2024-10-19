@@ -3,107 +3,68 @@ version: "3.1"
 nlu:
 - intent: greet
   examples: |
-    - hi
-    - hello
     - hey
-    - hello there
-    - hey there
+    - hello
+    - hi
     - good morning
-    - hi chat
-    - hey chat
-    - hey dude
-    - hi dude
-    - whats up
+    - good evening
+    - hey there
 
 - intent: goodbye
   examples: |
-    - cu
-    - goody by
-    - cee you later
     - bye
-    - good bye
     - goodbye
-    - bye bye
-    - see ya
-    - see you arount
-    - have a nice day
+    - see you around
+    - see you later
 
-- intent: afirm
+- intent: affirm
   examples: |
     - yes
-    - yep
-    - y
-    - Y
-    - ye
     - indeed
     - of course
-    - yep that worked
-    - yes that worked
+    - that sounds good
     - correct
 
 - intent: deny
   examples: |
     - no
-    - nop
-    - n
-    - N
-    - nope
     - never
-    - of course
-    - that didn't worked
-    - i don't think so
-    - i dont think so
-    - dont think so
+    - I don't think so
+    - don't like that
+    - no way
     - not really
 
-- intent: thanks
+- intent: ask_solution
   examples: |
-    - thank you
+    - I have a problem with my [router](issue)
+    - My [internet](issue) is not working
+    - [Router](issue) is not connecting
+    - [Network](issue) issues
+    - [Slow internet](issue) speed
+    - [Connection](issue) keeps dropping
+    - [Modem](issue) is not working
+    - Issues with [connectivity](issue)
+    - My [router](issue) is [overheating](symptom)
+    - The [modem](issue) [temperature is too high](symptom)
+    - [Wi-Fi](issue) signal is [weak](symptom)
+    - [Internet speed](issue) is [very slow](symptom)
+    - [Connection](issue) [keeps dropping](symptom)
+    - [Router](issue) [restarts randomly](symptom)
+    - [Modem](issue) [lights are blinking](symptom)
+    - Can't [connect to Wi-Fi](symptom) on my [phone](issue)
+    - [Ethernet](issue) connection is [not working](symptom)
+    - [Upload speed](issue) is [extremely slow](symptom)
+
+- intent: thank
+  examples: |
     - thanks
-    - finally ty
-    - ty
+    - thank you
+    - appreciate it
+    - thanks a lot
 
-- intent: ask_for_solution
+- intent: human_handoff
   examples: |
-    - my modem is overheating any solutions?
-    - my modem temperature is too high
-    - i am unable to connect to the modem
-    - spotty internet
-    - slow internet connection
-    - sluggish internet connection
-    - slow internet speeds
-    - slow internet speed
-    - bad internet speed
-    - low internet speeds
-    - bad internet speeds
-    - internet is slow
-    - ping is high
-    - latency is high
-    - web page is slow to load
-    - no internet
-    - no internet signal
-    - internet is down
-    - my home has no internet
-    - no internet connection
-    - web page is not loading
-    - network outage
-    - no wifi
-    - no wifi signal
-    - no wifi connection
-    - wifi is down
-    - wi-fi is down
-    - wifi network is down
-    - wireless network is down
-    - not able to connect to the wifi
-
-
-- intent: bot_challenge
-  examples: |
-    - are you a bot?
-    - are you human?
-    - am i talking to a bot?
-    - am i talking to a human?
-    - bot?
-    - human?
-    - are you ai?
-    - ai?
+    - I want to speak to a human
+    - Can I talk to a real person?
+    - Connect me with an agent
+    - I need to speak with customer service

@@ -1,126 +1,144 @@
-import sqlite3
+from typing import Any, Text, Dict, List
 from rasa_sdk import Action, Tracker
 from rasa_sdk.executor import CollectingDispatcher
-from typing import Any, Text, Dict, List
+from rasa_sdk.events import SlotSet, FollowupAction
+import sqlite3
 from fuzzywuzzy import fuzz
-import logging
 import spacy
 
-class ActionGetBestMatchingSolution(Action):
-    def __init__(self):
-        super().__init__()
-        self.nlp = spacy.load("en_core_web_md")
+nlp = spacy.load("en_core_web_sm")
 
+class ActionExtractIssueSymptom(Action):
     def name(self) -> Text:
-        return "action_get_best_matching_solution"
+        return "action_extract_issue_symptom"
 
-    async def run(self, dispatcher: CollectingDispatcher,
-                  tracker: Tracker,
-                  domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-        user_message = tracker.latest_message.get('text').lower()
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
 
-        # First try FuzzyWuzzy for matching
-        best_match = self.get_best_matching_solution(user_message)
+        message = tracker.latest_message.get('text')
+        doc = nlp(message)
 
-        # If no good match is found, try semantic similarity with Spacy
-        if not best_match:
-            best_match = self.get_semantically_similar_solution(user_message)
+        issue = None
+        symptom = None
 
-        if best_match:
-            matched_issue, solution = best_match
-            dispatcher.utter_message(
-                text=f"I understand you're having an issue with {matched_issue}. Here's what you can try: {solution}"
-            )
+        for chunk in doc.noun_chunks:
+            if "router" in chunk.text or "modem" in chunk.text or "internet" in chunk.text:
+                issue = chunk.text
+                break
+
+        for token in doc:
+            if token.pos_ == "VERB" or token.pos_ == "ADJ":
+                symptom = token.text
+                break
+
+        if not issue:
+            issue = "device"
+
+        if not symptom:
+            symptom = "problem"
+
+        return [SlotSet("issue", issue), SlotSet("symptom", symptom), FollowupAction("action_provide_solution")]
+
+class ActionProvideSolution(Action):
+    def name(self) -> Text:
+        return "action_provide_solution"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        issue = tracker.get_slot("issue")
+        symptom = tracker.get_slot("symptom")
+        solution = self.get_solution_from_kb(issue, symptom)
+        department = None
+
+        if solution:
+            dispatcher.utter_message(text=f"I understand you're having an issue with your {issue} that's {symptom}. Here's a possible solution: {solution}")
         else:
-            # Raise a ticket if no match is found
-            dispatcher.utter_message(text="I couldn't find a specific solution for your issue. I'll raise a support ticket for you.")
-            ticket_response = self.raise_ticket(user_message)
-            dispatcher.utter_message(text=ticket_response)
-
-        return []
-
-    def get_best_matching_solution(self, issue: Text) -> Any:
-        """Fetch the best matching solution using fuzzy matching."""
-        try:
-            conn = sqlite3.connect('knowledgebase.db')
-            cursor = conn.cursor()
-
-            cursor.execute("SELECT issue, solution FROM solutions")
-            all_solutions = cursor.fetchall()
-            conn.close()
-
-            best_match = None
-            highest_score = 0
-
-            for db_issue, solution in all_solutions:
-                score = fuzz.token_set_ratio(issue.lower(), db_issue.lower())
-                if score > highest_score:
-                    highest_score = score
-                    best_match = (db_issue, solution)
-
-            # Only return if the fuzzy match score is above 60
-            if best_match and highest_score > 60:
-                return best_match
-
-        except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
-        except Exception as e:
-            logging.error(f"Unexpected error: {e}")
-
-        return None
-
-    def get_semantically_similar_solution(self, issue: Text) -> Any:
-        try:
-            conn = sqlite3.connect('knowledgebase.db')
-            cursor = conn.cursor()
-
-            cursor.execute("SELECT issue, solution FROM solutions")
-            all_solutions = cursor.fetchall()
-            conn.close()
-
-            best_match = None
-            highest_similarity = 0.0
-
-            user_issue_doc = self.nlp(issue)
-
-            for db_issue, solution in all_solutions:
-                db_issue_doc = self.nlp(db_issue)
-                similarity = user_issue_doc.similarity(db_issue_doc)
-
-                if similarity > highest_similarity:
-                    highest_similarity = similarity
-                    best_match = (db_issue, solution)
-
-            # Only return if similarity is above a reasonable threshold (e.g., 0.75)
-            if best_match and highest_similarity > 0.75:
-                return best_match
-
-        except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
-        except Exception as e:
-            logging.error(f"Unexpected error: {e}")
-
-        return None
-
-    def raise_ticket(self, customer_issue: Text) -> Text:
-        try:
-            conn = sqlite3.connect('support_tickets.db')
-            cursor = conn.cursor()
-
-            cursor.execute('''CREATE TABLE IF NOT EXISTS tickets
-                            (id INTEGER PRIMARY KEY, customer_issue TEXT, status TEXT)''')
-
-            cursor.execute("INSERT INTO tickets (customer_issue, status) VALUES (?, ?)",
-                           (customer_issue, 'unresolved'))
-            conn.commit()
-            conn.close()
-
-            return "I've created a support ticket for your issue. Our team will get back to you soon."
+            department = self.get_department(issue, symptom)
+            dispatcher.utter_message(text=f"I'm sorry, I couldn't find a specific solution for your {issue} {symptom} issue. This might be handled by our {department} department. Would you like me to create a ticket for further assistance?")
         
-        except sqlite3.Error as e:
-            logging.error(f"Database error while raising ticket: {e}")
-            return "There was an issue while raising the ticket. Please try again later."
+        dispatcher.utter_message(text="Is there anything else I can help you with?")
         
-        except Exception as e:
-            logging.error(f"Unexpected error while raising ticket: {e}")
-            return "An unexpected error occurred while raising the ticket. Please try again later."
+        return [SlotSet("department", department)]
+
+    def get_solution_from_kb(self, issue: Text, symptom: Text) -> Text:
+        conn = sqlite3.connect('knowledge_base.db')
+        c = conn.cursor()
+        c.execute("SELECT solution FROM solutions WHERE issue LIKE ? AND symptom LIKE ?", 
+                  ('%' + issue + '%', '%' + symptom + '%'))
+        result = c.fetchone()
+        if not result:
+            c.execute("SELECT solution FROM solutions WHERE issue LIKE ? OR symptom LIKE ?", 
+                      ('%' + issue + '%', '%' + symptom + '%'))
+            result = c.fetchone()
+        conn.close()
+        return result[0] if result else None
+
+    def get_department(self, issue: Text, symptom: Text) -> Text:
+        conn = sqlite3.connect('knowledge_base.db')
+        c = conn.cursor()
+        c.execute("SELECT department FROM departments")
+        departments = c.fetchall()
+        conn.close()
+
+        combined_text = f"{issue} {symptom}"
+        best_match = None
+        highest_score = 0
+        for dept in departments:
+            score = fuzz.token_set_ratio(combined_text.lower(), dept[0].lower())
+            if score > highest_score:
+                highest_score = score
+                best_match = dept[0]
+
+        return best_match
+
+class ActionCreateTicket(Action):
+    def name(self) -> Text:
+        return "action_create_ticket"
+
+    def run(self, dispatcher: CollectingDispatcher,
+            tracker: Tracker,
+            domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
+
+        issue = tracker.get_slot("issue")
+        symptom = tracker.get_slot("symptom")
+        department = tracker.get_slot("department")
+        
+        # Extract relevant info from the chat history
+        chat_history = tracker.events
+        relevant_info = self.extract_relevant_info(chat_history)
+
+        # Create ticket in the database
+        ticket_id = self.create_ticket_in_db(issue, symptom, department, relevant_info)
+
+        ticket_info = f"Ticket ID: {ticket_id}, Issue: {issue}, Symptom: {symptom}, Relevant Info: {relevant_info}"
+        
+        dispatcher.utter_message(text=f"I've created a ticket for the {department} department with the following information: {ticket_info}")
+        dispatcher.utter_message(text="Is there anything else I can help you with?")
+        
+        return [SlotSet("ticket_info", ticket_info)]
+
+    def extract_relevant_info(self, chat_history: List[Dict[Text, Any]]) -> Text:
+        relevant_info = ""
+        for event in chat_history:
+            if event.get("event") == "user" and event.get("text"):
+                relevant_info += event.get("text") + " "
+        return relevant_info.strip()
+
+    def create_ticket_in_db(self, issue: Text, symptom: Text, department: Text, relevant_info: Text) -> int:
+        conn = sqlite3.connect('tickets.db')
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS tickets
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                      issue TEXT,
+                      symptom TEXT,
+                      department TEXT,
+                      relevant_info TEXT)''')
+        c.execute("INSERT INTO tickets (issue, symptom, department, relevant_info) VALUES (?, ?, ?, ?)",
+                  (issue, symptom, department, relevant_info))
+        ticket_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        return ticket_id
